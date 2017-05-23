@@ -161,6 +161,8 @@
 #define CONFIG_BOOTP_DNS
 #define CONFIG_BOOTP_DNS2
 #define CONFIG_BOOTP_SEND_HOSTNAME
+#define CONFIG_BOOTP_HOSTNAME
+#define CONFIG_BOOTP_BOOTPATH
 #define CONFIG_NET_RETRY_COUNT		10
 
 /*
@@ -182,7 +184,9 @@
 #define CONFIG_JFFS2_PART_SIZE		0xf980000	/* sz of jffs2 part */
 
 /* Environment information */
-#define CONFIG_BOOTDELAY	10
+/* with 1 link is not initialized
+ * Worked with 2, let 3 for security */
+#define CONFIG_BOOTDELAY	3
 
 /* only cancel autoboot if enter or start is pressed */
 #define CONFIG_AUTOBOOT_KEYED
@@ -194,40 +198,14 @@
 #define CONFIG_BOOTFILE		"uImage"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"loadaddr=0x82000000\0" \
 	"console=ttyO2,115200n8\0" \
-	"mmcdev=0\0" \
-    "eth=F8:DC:7A:00:DE:AD\0"\
-	"mmcargs=setenv bootargs eth=${eth} console=${console} " \
-		"root=/dev/mmcblk0p1 rw rootwait 5\0" \
-	"nandargs=setenv bootargs eth=${eth} console=${console} " \
-		"root=/dev/mtdblock4 rw " \
-		"rootfstype=jffs2 4\0" \
-	"loadbootscript=fatload mmc ${mmcdev} ${loadaddr} boot.scr\0" \
-	"bootscript=echo Running bootscript from mmc ...; " \
-		"source ${loadaddr}\0" \
-	"loaduimage=fatload mmc ${mmcdev} ${loadaddr} uImage\0" \
-	"mmcboot=echo Booting from mmc ...; " \
-		"run mmcargs; " \
-		"nand read ${loadaddr} 280000 400000; " \
-		"bootm ${loadaddr}\0" \
-	"nandboot=echo Booting from nand ...; " \
-		"run nandargs; " \
-		"nand read ${loadaddr} 280000 400000; " \
-		"bootm ${loadaddr}\0" \
-    "bootcmd=run nandboot\0"
+    "the_best=clochette\0"
 
 #define CONFIG_BOOTCOMMAND \
-	"mmc dev ${mmcdev}; if mmc rescan; then " \
-		"if run loadbootscript; then " \
-			"run bootscript; " \
-		"else " \
-			"if run loaduimage; then " \
-				"run mmcboot; " \
-			"else run nandboot; " \
-			"fi; " \
-		"fi; " \
-	"else run nandboot; fi"
+        "bootp; setenv bootargs mem=256M console=${console} "\
+        "root=/dev/nfs ip=dhcp "\
+        "nfsroot=${serverip}:/iotlab/images/${ipaddr}/image " \
+    "rw rootwait eth=${ethaddr}; bootm"
 
 #define CONFIG_AUTO_COMPLETE	1
 /*
