@@ -5,6 +5,23 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
+#define HKB_DEBUG 0
+
+#if HKB_DEBUG == 1
+#define hkb_printf(x...) printf(x)
+#else
+#define hkb_printf(x...) do {} while(0)
+#endif
+
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
 #include <common.h>
 #include <asm/io.h>
 #include <asm/errno.h>
@@ -597,7 +614,8 @@ static int omap_select_ecc_scheme(struct nand_chip *nand,
 		break;
 
 	case OMAP_ECC_HAM1_CODE_HW:
-		debug("nand: selected OMAP_ECC_HAM1_CODE_HW\n");
+		printf("\nNAND: selected OMAP_ECC_HAM1_CODE_HW\n");
+		hkb_printf("NAND:    NAND_BUSWIDTH_16 : %d\n", nand->options & NAND_BUSWIDTH_16);
 		/* check ecc-scheme requirements before updating ecc info */
 		if ((3 * eccsteps) + BADBLOCK_MARKER_LENGTH > oobsize) {
 			printf("nand: error: insufficient OOB: require=%d\n", (
@@ -629,7 +647,7 @@ static int omap_select_ecc_scheme(struct nand_chip *nand,
 
 	case OMAP_ECC_BCH8_CODE_HW_DETECTION_SW:
 #ifdef CONFIG_BCH
-		debug("nand: selected OMAP_ECC_BCH8_CODE_HW_DETECTION_SW\n");
+		hkb_printf("selected OMAP_ECC_BCH8_CODE_HW_DETECTION_SW\n");
 		/* check ecc-scheme requirements before updating ecc info */
 		if ((13 * eccsteps) + BADBLOCK_MARKER_LENGTH > oobsize) {
 			printf("nand: error: insufficient OOB: require=%d\n", (
@@ -654,6 +672,14 @@ static int omap_select_ecc_scheme(struct nand_chip *nand,
 		/* define ecc-layout */
 		ecclayout->eccbytes	= nand->ecc.bytes * eccsteps;
 		ecclayout->eccpos[0]	= BADBLOCK_MARKER_LENGTH;
+		hkb_printf("NAND: ecclayout->eccbytes %d, nand->ecc.bytes %d\n",
+			   ecclayout->eccbytes,nand->ecc.bytes);
+		
+		/*
+		 * This loop sets the eccpos and overrides the config defined
+		 * in CONFIG_SYS_NAND_ECCPOS
+		 *
+		 */
 		for (i = 1; i < ecclayout->eccbytes; i++) {
 			if (i % nand->ecc.bytes)
 				ecclayout->eccpos[i] =
@@ -662,6 +688,7 @@ static int omap_select_ecc_scheme(struct nand_chip *nand,
 				ecclayout->eccpos[i] =
 						ecclayout->eccpos[i - 1] + 2;
 		}
+		
 		ecclayout->oobfree[0].offset = i + BADBLOCK_MARKER_LENGTH;
 		ecclayout->oobfree[0].length = oobsize - ecclayout->eccbytes -
 						BADBLOCK_MARKER_LENGTH;
@@ -748,6 +775,15 @@ static int omap_select_ecc_scheme(struct nand_chip *nand,
 		nand->ecc.layout = ecclayout;
 
 	info->ecc_scheme = ecc_scheme;
+
+	// DEBUG LAYOUT
+	for(i=0; i < nand->ecc.layout->eccbytes; i++) {
+		hkb_printf("%d ",nand->ecc.layout->eccpos[i]);
+	}
+	hkb_printf("\nNAND:   oob offset:%d  - oob length:%d\n",
+	       nand->ecc.layout->oobfree[0].offset,
+	       nand->ecc.layout->oobfree[0].length);
+	
 	return 0;
 }
 
@@ -868,6 +904,7 @@ int board_nand_init(struct nand_chip *nand)
 	nand->options &= ~NAND_BUSWIDTH_16;
 	writel(gpmc_config & ~(0x1 << 12), &gpmc_cfg->cs[cs].config1);
 #endif
+
 	/* select ECC scheme */
 #if defined(CONFIG_NAND_OMAP_ECCSCHEME)
 	err = omap_select_ecc_scheme(nand, CONFIG_NAND_OMAP_ECCSCHEME,

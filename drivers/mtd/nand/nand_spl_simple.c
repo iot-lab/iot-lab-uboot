@@ -5,6 +5,22 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
+#define HKB_DEBUG 0
+
+#if HKB_DEBUG == 1
+#define hkb_printf(x...) printf(x)
+#else
+#define hkb_printf(x...) do {} while(0)
+#endif
+
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
 #include <common.h>
 #include <nand.h>
 #include <asm/io.h>
@@ -211,6 +227,8 @@ int nand_spl_load_image(uint32_t offs, unsigned int size, void *dst)
 	unsigned int block, lastblock;
 	unsigned int page;
 
+	hkb_printf("SPL: nand load image simple %x %x\n",offs,size);
+	
 	/*
 	 * offs has to be aligned to a page address!
 	 */
@@ -228,14 +246,17 @@ int nand_spl_load_image(uint32_t offs, unsigned int size, void *dst)
 				dst += CONFIG_SYS_NAND_PAGE_SIZE;
 				page++;
 			}
-
+			hkb_printf(".");
 			page = 0;
 		} else {
+			hkb_printf("B");
 			lastblock++;
 		}
 
 		block++;
 	}
+
+	hkb_printf("\nSPL: load done\n");
 
 	return 0;
 }

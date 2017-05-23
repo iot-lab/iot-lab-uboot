@@ -29,6 +29,22 @@
  *
  */
 
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
+#define HKB_DEBUG 0
+
+#if HKB_DEBUG == 1
+#define hkb_printf(x...) printf(x)
+#else
+#define hkb_printf(x...) do {} while(0)
+#endif
+
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
 #ifndef __UBOOT__
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -632,6 +648,7 @@ static int nand_check_wp(struct mtd_info *mtd)
 static int nand_block_checkbad(struct mtd_info *mtd, loff_t ofs, int getchip,
 			       int allowbbt)
 {
+    int ret;
 	struct nand_chip *chip = mtd->priv;
 
 	if (!(chip->options & NAND_SKIP_BBTSCAN) &&
@@ -640,11 +657,20 @@ static int nand_block_checkbad(struct mtd_info *mtd, loff_t ofs, int getchip,
 		chip->scan_bbt(mtd);
 	}
 
-	if (!chip->bbt)
-		return chip->block_bad(mtd, ofs, getchip);
+	if (!chip->bbt) {
+		ret = chip->block_bad(mtd, ofs, getchip);
+        if (ret) {
+            hkb_printf(".R.");
+        }
+        return ret;
+    }
 
 	/* Return info from the table */
-	return nand_isbad_bbt(mtd, ofs, allowbbt);
+	ret = nand_isbad_bbt(mtd, ofs, allowbbt);
+    if (ret) {
+        hkb_printf(".T.");
+    }
+    return ret;
 }
 
 #ifndef __UBOOT__
@@ -2891,8 +2917,7 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 
 	/* Check, if it is write protected */
 	if (nand_check_wp(mtd)) {
-		pr_debug("%s: device is write protected!\n",
-				__func__);
+		printf("device is write protected!\n");
 		instr->state = MTD_ERASE_FAILED;
 		goto erase_exit;
 	}
@@ -2908,10 +2933,12 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 		/* Check if we have a bad block, we do not erase bad blocks! */
 		if (!instr->scrub && nand_block_checkbad(mtd, ((loff_t) page) <<
 					chip->page_shift, 0, allowbbt)) {
-			pr_warn("%s: attempt to erase a bad block at page 0x%08x\n",
-				    __func__, page);
+#if HKB_DEBUG == 1
+			printf("attempt to erase a bad block at page 0x%08x\n", page);
+#else
 			instr->state = MTD_ERASE_FAILED;
 			goto erase_exit;
+#endif
 		}
 
 		/*
@@ -2936,8 +2963,7 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 
 		/* See if block erase succeeded */
 		if (status & NAND_STATUS_FAIL) {
-			pr_debug("%s: failed erase, page 0x%08x\n",
-					__func__, page);
+			printf("failed erase, page 0x%08x\n", page);
 			instr->state = MTD_ERASE_FAILED;
 			instr->fail_addr =
 				((loff_t)page << chip->page_shift);
@@ -3903,14 +3929,20 @@ ident_done:
 		 * Check, if buswidth is correct. Hardware drivers should set
 		 * chip correct!
 		 */
-		pr_info("device found, Manufacturer ID: 0x%02x, Chip ID: 0x%02x\n",
+		printf("error: device found, Manufacturer ID: 0x%02x, Chip ID: 0x%02x\n",
 			*maf_id, *dev_id);
-		pr_info("%s %s\n", nand_manuf_ids[maf_idx].name, mtd->name);
-		pr_warn("bus width %d instead %d bit\n",
+		printf("error: %s %s\n", nand_manuf_ids[maf_idx].name, mtd->name);
+		printf("error: bus width %d instead %d bit\n",
 			   (chip->options & NAND_BUSWIDTH_16) ? 16 : 8,
 			   busw ? 16 : 8);
 		return ERR_PTR(-EINVAL);
 	}
+
+
+	hkb_printf("NAND: Manufacturer ID: 0x%02x, Chip ID: 0x%02x\n",*maf_id, *dev_id);
+	hkb_printf("NAND: '%s' - '%s' bus width %d\n", nand_manuf_ids[maf_idx].name, mtd->name,
+	       (chip->options & NAND_BUSWIDTH_16) ? 16 : 8);
+
 
 	nand_decode_bbm_options(mtd, chip, id_data);
 

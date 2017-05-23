@@ -19,6 +19,16 @@
  * SPDX-License-Identifier:	GPL-2.0
  */
 
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
+#define HKB_DEBUG 0
+
+/* ************************************************** */
+/* ************************************************** */
+/* ************************************************** */
+
 #include <common.h>
 #include <command.h>
 #include <watchdog.h>
@@ -104,6 +114,13 @@ int nand_erase_opts(nand_info_t *meminfo, const nand_erase_options_t *opts)
 			puts("Size of erase exceeds limit\n");
 			return -EFBIG;
 		}
+		
+#if HKB_DEBUG == 1
+		/*
+		 * If HKB_DEBUG == 1 then we clean/scrub/kill and
+		 * erase all blocks. be careful quand même.
+		 */
+#else
 		if (!opts->scrub) {
 			int ret = mtd_block_isbad(meminfo, erase.addr);
 			if (ret > 0) {
@@ -125,14 +142,19 @@ int nand_erase_opts(nand_info_t *meminfo, const nand_erase_options_t *opts)
 				return -1;
 			}
 		}
-
+#endif
+		
 		erased_length++;
 
 		result = mtd_erase(meminfo, &erase);
 		if (result != 0) {
-			printf("\n%s: MTD Erase failure: %d\n",
-			       mtd_device, result);
+#if HKB_DEBUG == 1
+			// we brake for nobody
+			printf("%s: MTD Erase failure: %d - keep going\n", mtd_device, result);
+#else
+			printf("%s: MTD Erase failure: %d\n", mtd_device, result);
 			continue;
+#endif
 		}
 
 		/* format for JFFS2 ? */
@@ -570,10 +592,14 @@ int nand_write_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 		WATCHDOG_RESET();
 
 		if (nand_block_isbad(nand, offset & ~(nand->erasesize - 1))) {
+#if HKB_DEBUG == 1
+			debug("Used to be skip bad block 0x%08llx\n",offset & ~(nand->erasesize - 1));
+#else
 			printf("Skip bad block 0x%08llx\n",
 				offset & ~(nand->erasesize - 1));
 			offset += nand->erasesize - block_offset;
 			continue;
+#endif
 		}
 
 		if (left_to_write < (blocksize - block_offset))

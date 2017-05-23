@@ -3,6 +3,9 @@ if OMAP34XX
 choice
 	prompt "OMAP3 board select"
 
+config TARGET_HIKOB_VARAM35
+        bool "HIKOB var-am35"
+
 config TARGET_AM3517_EVM
 	bool "AM3517 EVM"
 	select SUPPORT_SPL
@@ -96,6 +99,7 @@ endchoice
 config SYS_SOC
 	default "omap3"
 
+source "board/hikob/varam35/Kconfig"
 source "board/logicpd/am3517evm/Kconfig"
 source "board/teejet/mt_ventoux/Kconfig"
 source "board/ti/sdp3430/Kconfig"
