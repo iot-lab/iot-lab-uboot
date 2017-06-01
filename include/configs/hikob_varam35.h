@@ -199,13 +199,14 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"console=ttyO2,115200n8\0" \
-    "the_best=clochette\0"
+	"ethaddr=AA:BB:CC:DD:EE:FF\0" \
+	"the_best=clochette\0"
 
 #define CONFIG_BOOTCOMMAND \
-        "bootp; setenv bootargs mem=256M console=${console} "\
-        "root=/dev/nfs ip=dhcp "\
-        "nfsroot=${serverip}:/iotlab/images/${ipaddr}/image " \
-    "rw rootwait eth=${ethaddr}; bootm"
+	"bootp; setenv bootargs mem=256M console=${console} "\
+	"root=/dev/nfs ip=dhcp "\
+	"nfsroot=${serverip}:/iotlab/images/${ipaddr}/image " \
+	"rw rootwait eth=${ethaddr}; bootm"
 
 #define CONFIG_AUTO_COMPLETE	1
 /*
